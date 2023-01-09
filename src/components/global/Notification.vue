@@ -84,6 +84,7 @@
 
         notificationElem.style.removeProperty("transition");
         moveX.value = 0;
+        lastMovingMoveX.value = 0;
     }
 
     watch([moveX, isMoving], (nowValues, oldValues) => {
