@@ -235,8 +235,7 @@
                                     const requestBody = Object.freeze({
                                         content: result,
                                         name: lastFile.name,
-                                        type: lastFile.type,
-                                        size: lastFile.size
+                                        type: lastFile.type
                                     });
 
                                     const response = await axios.post<CustomResponse<AddedFile>>("/add file", requestBody, {
@@ -293,6 +292,12 @@
             align-items: center;
             justify-content: center;
             transition: all .35s ease-out;
+
+            @if $index != 1 {
+                @media screen and (max-width: 425px) {
+                    border-top: 1px solid #4D4D4D;
+                }
+            }
             
             &:active {
                 cursor: pointer;
@@ -305,26 +310,50 @@
 
             @if $index % 5 != 0 {
                 border-right: 1px solid #4D4D4D;
+
+                @media screen and (max-width: 425px) {
+                    border-right: none;
+                }
             }
 
             @if $index != 21 and $index != 22 and $index != 23 and $index != 24 and $index != 25 {
                 border-bottom: 1px solid #4D4D4D;
+
+                @media screen and (max-width: 425px) {
+                    border-bottom: none;
+                }
             }
 
             @if $index == 1 {
                 border-top-left-radius: 12px;
+
+                @media screen and (max-width: 425px) {
+                    border-top-right-radius: 12px;
+                }
             }
 
             @if $index == 5 {
                 border-top-right-radius: 12px;
+
+                @media screen and (max-width: 425px) {
+                    border-top-right-radius: unset;
+                }
             }
 
             @if $index == 21 {
                 border-bottom-left-radius: 12px;
+
+                @media screen and (max-width: 425px) {
+                    border-bottom-left-radius: none;
+                }
             }
 
             @if $index == 25 {
                 border-bottom-right-radius: 12px;
+
+                @media screen and (max-width: 425px) {
+                    border-bottom-left-radius: 12px;
+                }
             }
         }
     }

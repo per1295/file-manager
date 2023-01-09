@@ -78,3 +78,16 @@ export function changeTheme(nowTheme: Theme) {
         }
     });
 }
+
+export function normalizeBase64(str: string): string {
+    return str.replace(/^.+?base64/, (matchStr) => {
+        let replacer = "data:image/<!--space-->;base64,";
+        const match = matchStr.match(/(?<=dataimage\/\w+(?=base64))/);
+
+        if ( !match ) throw new Error("Failed to nomalize base64");
+
+        const subtype = match.toString();
+
+        return replacer.replace("<!--space-->", subtype);
+    });
+}

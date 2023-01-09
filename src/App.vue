@@ -20,8 +20,6 @@
             <component :is="Component"/>
         </transition>
     </router-view>
-    <notifications-vue/>
-    <change-theme-vue/>
 </template>
 
 <script setup lang="ts">
@@ -31,9 +29,6 @@
     import useTheme from "../pinia/useTheme";
     import { storeToRefs } from "pinia";
     import { changeTheme } from "../functions";
-
-    import NotificationsVue from "./components/global/Notifications.vue";
-    import ChangeThemeVue from "./components/global/ChangeTheme.vue";
 
     const route = useRoute();
 
@@ -176,15 +171,19 @@
         transform: translateY(30px);
     }
 
-    .file-manager-enter-active, .file-manager-leave-active {
+    .file-manager-enter-active .file-manager, .file-manager-leave-active .file-manager,
+    .file-manager-enter-active .signUp-form, .file-manager-leave-active .signUp-form,
+    .file-manager-enter-active .login-form, .file-manager-leave-active .login-form {
         transition: filter .35s ease !important;
     }
 
-    .file-manager-leave-active.file-manager {
+    .file-manager-leave-active .file-manager {
         transition: filter .35s ease .75s !important;
     }
 
-    .file-manager-enter-from, .file-manager-leave-to {
+    .file-manager-enter-from .file-manager, .file-manager-leave-to .file-manager,
+    .file-manager-enter-from .signUp-form, .file-manager-leave-to .signUp-form,
+    .file-manager-enter-from .login-form, .file-manager-leave-to .login-form {
         filter: blur(10px) grayscale(50%);
     }
 

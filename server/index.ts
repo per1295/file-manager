@@ -6,6 +6,8 @@ import { createServer as createViteServer, ViteDevServer } from 'vite';
 import { config } from "dotenv";
 import { createConnection } from "mysql2/promise";
 import { initDB, getApiRoute } from './functions.js';
+import { join } from "path";
+import { mkdir } from "fs/promises";
 
 import signUpRouter from './routes/signUp.js';
 import loginRouter from './routes/login.js';
@@ -99,6 +101,10 @@ async function startApplication() {
     });
 
     await initDB(connection);
+
+    const pathToDocuments = join(process.cwd(), "server", "documents");
+
+    await mkdir(pathToDocuments, { recursive: true });
 
     const app = await createServer();
 

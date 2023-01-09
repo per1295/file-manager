@@ -1,13 +1,17 @@
 import { Router, json } from "express";
-import { ValuesValidator, createResponse, setCookies } from "../functions.js";
+import { ValuesValidator, createResponse, setCookies, handlersWrapper } from "../functions.js";
 import type { LoginData, AppLocals, SignUpData, ServerVersion } from "../../data-types.js";
+import { join } from "path";
+import { mkdir } from "fs/promises";
 
 const loginRouter = Router();
 
 const jsonParser = json();
 
-loginRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
-    try {
+const documents = join(process.cwd(), "server/documents");
+
+loginRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
+    async (req, res) => {
         const { email, password, isRemembered } = req.body as LoginData;
 
         const validator = new ValuesValidator({
@@ -36,9 +40,9 @@ loginRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
         const [ existUsers ] = await connection.execute<any[]>(
             `
                 SELECT * from users
-                WHERE email = ?
+                WHERE email = ? and password = ?
             `,
-            [ email ]
+            [ email, password ]
         );
 
         if ( existUsers.length === 0 ) {
@@ -52,13 +56,9 @@ loginRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
         const existsUser = existUsers[0] as ServerVersion<SignUpData>;
         const { id, username, tel } = existsUser;
 
-        if ( existsUser.password !== password ) {
-            return res
-                .status(404)
-                .json(
-                    createResponse("fail", "Wrong password")
-                );
-        }
+        const pathToUsersDocuments = join(documents, `user-${id}`);
+
+        await mkdir(pathToUsersDocuments, { recursive: true });
 
         const cookieObj = {
             userId: id,
@@ -76,15 +76,7 @@ loginRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
             .json(
                 createResponse("success", "Your login was successful")
             );
-    } catch (error) {
-        console.log(error);
-        
-        res
-            .status(404)
-            .json(
-                createResponse("fail", "Failed request")
-            );
     }
-});
+));
 
 export default loginRouter;

@@ -26,7 +26,7 @@ export default defineStore("files", () => {
                 if ( !/^ceil/.test(key) ) continue;
 
                 if ( `ceil-${from}` === key ) {
-                    const idOfFile = localStorage.getItem(key);
+                    const idOfFile = localStorage.getItem(key) as string;
                     localStorage.removeItem(key);
                     localStorage.setItem(`ceil-${to}`, idOfFile);
                 }

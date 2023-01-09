@@ -37,7 +37,7 @@
     }
 
     .notification-enter-from, .notification-leave-to {
-        transform: translateX(-20px);
-        opacity: 0;
+        transform: translateX(-20px) !important;
+        opacity: 0 !important;
     }
 </style>

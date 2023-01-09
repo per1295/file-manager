@@ -1,14 +1,18 @@
 import { Router, json } from "express";
 import type { SignUpData, AppLocals, ServerVersion } from "../../data-types.js";
-import { createResponse, setCookies, ValuesValidator } from "../functions.js";
+import { createResponse, setCookies, ValuesValidator, handlersWrapper } from "../functions.js";
 import { getDateTime } from "../../functions.js";
+import { mkdir } from "fs/promises";
+import { join } from "path";
 
 const signUpRouter = Router();
 
 const jsonParser = json();
 
-signUpRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
-    try {
+const documents = join(process.cwd(), "server/documents");
+
+signUpRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
+    async (req, res) => {
         let { username, email, tel, password } = req.body as SignUpData;
 
         const validator = new ValuesValidator({
@@ -64,14 +68,19 @@ signUpRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
         const [ updateExistUsers ] = await connection.execute<any[]>(
             `
                 SELECT id from users
-                WHERE username = ? and email = ? and tel = ?
+                WHERE username = ? and email = ? and tel = ? and password = ?
+                LIMIT 1
             `,
-            [ username, email, tel ]
+            [ username, email, tel, password ]
         );
 
         const newUser = updateExistUsers[0] as ServerVersion<SignUpData>;
 
         const { id } = newUser;
+
+        const pathToUsersDocuments = join(documents, `user-${id}`);
+
+        await mkdir(pathToUsersDocuments, { recursive: true });
 
         setCookies(res, {
             userId: id,
@@ -86,15 +95,7 @@ signUpRouter.post(encodeURI("/user data"), jsonParser, async (req, res) => {
             .json(
                 createResponse("success", "Your registration was successful")
             );
-    } catch (error) {
-        console.log(error);
-        
-        res
-            .status(404)
-            .json(
-                createResponse("fail", "Failed request")
-            );
     }
-});
+))
 
 export default signUpRouter;

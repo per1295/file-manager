@@ -9,4 +9,8 @@ axios.defaults.transformRequest = [
     transformRequestBody
 ];
 
+window.addEventListener("progress", (event) => {
+    console.log(event.loaded + ":" + event.total);
+});
+
 SSRApp.mount("#app");

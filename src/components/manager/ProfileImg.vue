@@ -51,7 +51,9 @@
 
     const sendImg = (imgFile: File) => {
         try {
-            if ( !/(png|jpeg)$/.test(imgFile.type) ) throw new Error("Wrong type of image");
+            const { type, name } = imgFile;
+
+            if ( !/(png|jpeg)$/.test(type) ) throw new Error("Wrong type of image");
 
             const reader = new FileReader();
 
@@ -60,9 +62,11 @@
             reader.addEventListener("load", async () => {
                 const result = reader.result as string;
 
-                const response = await axios.patch<CustomResponse<string>>("/add profile image", result, {
+                const requestBody = { profileImg: result, name }
+
+                const response = await axios.patch<CustomResponse<string>>("/add profile image", requestBody, {
                     headers: {
-                        "Content-Type": "text/plain",
+                        "Content-Type": "application/json",
                         "Accept": "application/json"
                     }
                 });

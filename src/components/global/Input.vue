@@ -2,6 +2,8 @@
     <div class="custom-input" :data-type="type">
         <input
             @input="updateValue($event, $emit)"
+            @focus="inputFocus"
+            @blur="inputFocus"
             :type="computedType"
             :name="name"
             class="custom-input"
@@ -124,6 +126,20 @@
     ));
 
     const passwordComponent = computed(() => isShowPassword.value ? ShowPasswordVue : UnShowPasswordVue);
+
+    const inputFocus = (event: FocusEvent) => {
+        const input = event.currentTarget as HTMLInputElement;
+        const type = event.type.toLocaleLowerCase();
+        
+        switch(type) {
+            case "focus":
+                input.placeholder = "";
+                break;
+            case "blur":
+                input.placeholder = props.placeholder ?? "";
+                break;
+        }
+    }
 </script>
 
 <style lang="scss">
@@ -146,6 +162,11 @@
             padding-right: 10px;
         }
 
+        @media screen and (max-width: 425px) {
+            width: 100%;
+            max-width: 312px;
+        }
+
         input.custom-input {
             height: 100%;
             width: 100%;
@@ -156,6 +177,7 @@
             line-height: 24px;
             color: rgba(0, 0, 0, 0.7);
             background-color: transparent;
+            text-overflow: ellipsis;
 
             &::placeholder, &::-moz-placeholder, &::-webkit-input-placeholder {
                 font-family: 'Poppins';

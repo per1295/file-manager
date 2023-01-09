@@ -31,6 +31,7 @@
     .custom-button {
         width: 312px;
         height: 48px;
+        min-height: 48px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -43,6 +44,11 @@
         line-height: 24px;
         color: rgba(255, 255, 255, 0.9);
         transition: background-color .25s ease-in-out;
+
+        @media screen and ( max-width: 425px ) {
+            width: 80%;
+            max-width: 312px;
+        }
     }
 
     .custom-button-active {

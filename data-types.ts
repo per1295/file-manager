@@ -5,7 +5,7 @@ export interface SignUpData {
     email: string;
     tel: string;
     password: string;
-    profileImg: string | null;
+    isProfileImg: boolean;
 }
 
 export interface LoginData {
@@ -39,7 +39,6 @@ export type ClientVersion<Type> = { userId: string } & Type;
 export interface AddedFile {
     id: string;
     userId: string;
-    content: string;
     name: string;
     type: string;
     size: string;
@@ -57,4 +56,15 @@ export type DarkTheme = "default" | "section";
 export interface CheckUserResponse {
     text: string;
     profileImg: string;
+}
+
+export interface DownloadFileResponse {
+    name: string;
+    type: string;
+    content: string;
+}
+
+export interface AddProfileImageRequestBody {
+    profileImg: string;
+    name: string;
 }

@@ -1,6 +1,6 @@
 import type { Connection } from "mysql2/promise";
 import type { CustomResponse, IValidatorType, FileSizeType } from "../data-types.js";
-import type { Response, CookieOptions } from "express";
+import type { Request, Response, NextFunction, CookieOptions } from "express";
 
 export async function initDB(connection: Connection) {
     await connection.execute(`
@@ -11,7 +11,7 @@ export async function initDB(connection: Connection) {
             tel VARCHAR(15) UNIQUE NOT NULL,
             password VARCHAR(50) NOT NULL,
             created DATETIME NOT NULL,
-            profileImg LONGTEXT NULL
+            isProfileImg BOOLEAN DEFAULT FALSE
         )
     `);
 
@@ -19,8 +19,7 @@ export async function initDB(connection: Connection) {
        CREATE TABLE IF NOT EXISTS documents (
             id INT AUTO_INCREMENT PRIMARY KEY,
             userId INT NOT NULL,
-            content LONGTEXT NOT NULL,
-            name VARCHAR(15) UNIQUE NOT NULL,
+            name TEXT NOT NULL,
             type TEXT NOT NULL,
             size TEXT NOT NULL,
             added DATETIME NOT NULL
@@ -42,7 +41,7 @@ export function createResponse(status: "success" | "fail", message: any): Readon
 }
 
 export function setCookies(res: Response, objCookies: { [key: string]: any }, customOptions?: CookieOptions) {
-    const cookieOptions = {
+    const cookieOptions: CookieOptions = {
         expires: new Date(Date.now() + 8.64e7) 
     };
 
@@ -274,4 +273,36 @@ export function getFileSize(size: number, enterType: FileSizeType, outputType: F
     }
 
     return `${size.toFixed(fix)}${outputType}`;
+}
+
+type Handler =
+((req: Request, res: Response, next?: NextFunction) => any | void)
+|
+((req: Request, res: Response, next?: NextFunction) => Promise<any | void>);
+
+
+export function handlersWrapper(...handlers: Handler[]): Handler[] {
+    const updatedHandlers: Handler[] = [];
+
+    for ( let i = 0; i < handlers.length; i++ ) {
+        const updatedHandler: Handler = async (req, res, _next) => {
+            try {
+                await handlers[i](req, res, _next);
+            } catch (error) {
+                const e = error as Error;
+
+                console.log(e);
+        
+                res
+                    .status(404)
+                    .json(
+                        createResponse("fail", `${e.name}: ${e.message}`)
+                    );
+            }
+        }
+
+        updatedHandlers.push(updatedHandler);
+    }
+
+    return updatedHandlers;
 }

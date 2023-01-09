@@ -118,5 +118,38 @@
         grid-template-columns: repeat(5, 20%);
         grid-template-rows: repeat(5, 20%);
         z-index: 1;
+
+        @media screen and (max-width: 425px) {
+            grid-template-areas:
+            "ceil-1"
+            "ceil-2"
+            "ceil-3"
+            "ceil-4"
+            "ceil-5"
+            "ceil-6"
+            "ceil-7"
+            "ceil-8"
+            "ceil-9"
+            "ceil-10"
+            "ceil-11"
+            "ceil-12"
+            "ceil-13"
+            "ceil-14"
+            "ceil-15"
+            "ceil-16"
+            "ceil-17"
+            "ceil-18"
+            "ceil-19"
+            "ceil-20"
+            "ceil-21"
+            "ceil-22"
+            "ceil-23"
+            "ceil-24"
+            "ceil-25";
+            grid-template-columns: 100%;
+            grid-template-rows: repeat(25, 50vw);
+            height: auto;
+            width: auto;
+        }
     }
 </style>

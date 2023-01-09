@@ -21,7 +21,7 @@
     import useFiles from '../../../pinia/useFiles';
     import useTheme from '../../../pinia/useTheme';
     import { storeToRefs } from 'pinia';
-    import type { CustomResponse } from '../../../data-types';
+    import type { CustomResponse, DownloadFileResponse } from '../../../data-types';
 
     const props = defineProps({
         type: {
@@ -51,21 +51,35 @@
         try {
             switch(props.type) {
             case "download":
-                const dowloadResponse = await axios.get("/download file", {
+                const dowloadResponse = await axios.get<CustomResponse<DownloadFileResponse>>("/download file", {
                     params: {
                         id: modalFileData.value.id
                     }
                 });
 
-                const { statusText, data: downloadData } = dowloadResponse;
+                const { data: downloadData } = dowloadResponse;
+                const { status: downloadStatus, message: downloadMessage } = downloadData;
+                const { name, type, content } = downloadMessage;
 
-                if ( statusText.toLowerCase() === "ok" ) {
-                    const anchorElem = document.createElement("a");
+                if ( downloadStatus === "success" ) {
+                    const downloadFile = new File([content], name, { type });
 
-                    anchorElem.download = modalFileData.value.name;
-                    anchorElem.href = downloadData;
+                    const reader = new FileReader();
 
-                    anchorElem.click();
+                    reader.readAsDataURL(downloadFile);
+
+                    reader.addEventListener("load", () => {
+                        const anchorElem = document.createElement("a");
+
+                        anchorElem.download = name;
+                        anchorElem.href = reader.result as string;
+
+                        anchorElem.click();
+                    });
+
+                    reader.addEventListener("error", () => {
+                        throw new Error("File`s loading failed");
+                    });
                 } else {
                     addNotification({
                         status: "fail",
@@ -81,9 +95,9 @@
                 });
 
                 const { data: deleteData } = deleteResponse;
-                const { status, message } = deleteData;
+                const { status: deleteStatus, message: deleteMessage } = deleteData;
 
-                if ( status === "success" ) {
+                if ( deleteStatus === "success" ) {
                     removeFileData(modalFileData.value.id);
 
                     localStorage.removeItem(`ceil-${modalFileData.value.id}`);
@@ -94,10 +108,10 @@
 
                     addNotification({
                         status: "success",
-                        title: message
+                        title: deleteMessage
                     });
                 } else {
-                    throw new Error(message);
+                    throw new Error(deleteMessage);
                 }
                 break;
         }

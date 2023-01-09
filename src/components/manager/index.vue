@@ -1,14 +1,16 @@
 <template>
-    <div class="file-manager">
-        <div class="file-manager-wrapper">
-            <profile-vue/>
-            <div class="file-manager-inventory-wrapper">
-                <inventory-vue/>
-                <modal/>
+    <layout-vue>
+        <div class="file-manager">
+            <div class="file-manager-wrapper">
+                <profile-vue/>
+                <div class="file-manager-inventory-wrapper">
+                    <inventory-vue/>
+                    <modal/>
+                </div>
             </div>
+            <footer-vue/>
         </div>
-        <footer-vue/>
-    </div>
+    </layout-vue>
 </template>
 
 <script setup lang="ts">
@@ -16,6 +18,7 @@
     import InventoryVue from './Inventory.vue';
     import FooterVue from './Footer.vue';
     import Modal from "./Modal.vue";
+    import LayoutVue from '../global/Layout.vue';
 
     import { onMounted } from 'vue';
     import axios from 'axios';
@@ -69,7 +72,7 @@
 
                 setUserData({
                     ...newCookies,
-                    profileImg: profileImg ?? ""
+                    profileImg
                 }, true);
 
                 addNotification({
@@ -97,13 +100,17 @@
 
 <style lang="scss">
     .file-manager {
-        height: 100vh;
+        min-height: 100vh;
         width: 100vw;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         row-gap: 20px;
+
+        @media screen and (max-width: 800px) {
+            padding: 40px 0;
+        }
 
         .file-manager-wrapper {
             width: 100%;
@@ -112,10 +119,20 @@
             justify-content: center;
             column-gap: 40px;
 
+            @media screen and (max-width: 800px) {
+                flex-direction: column;
+                row-gap: 40px;
+            }
+
             .file-manager-inventory-wrapper {
                 position: relative;
                 width: calc(90% - 276px);
                 overflow-x: hidden;
+
+                @media screen and (max-width: 800px) {
+                    width: 80%;
+                    max-width: 80%;
+                }
             }
         }
     }

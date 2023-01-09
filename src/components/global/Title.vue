@@ -26,6 +26,11 @@
         line-height: 36px;
         text-align: center;
         color: #000000;
+
+        @media screen and (max-width: 425px) {
+            max-width: 80%;
+            text-align: center;
+        }
     }
 
     .custom-subtitle {
@@ -36,5 +41,10 @@
         font-size: 14px;
         line-height: 19px;
         color: #343434;
+
+        @media screen and (max-width: 425px) {
+            max-width: 80%;
+            text-align: center;
+        }
     }
 </style>

@@ -41,10 +41,11 @@
 
     .description-enter-active, .description-leave-active {
         transition: all .35s ease !important;
+        transform-origin: left bottom !important;
     }
 
     .description-enter-from, .description-leave-to {
-        transform: translateX(-10px);
+        transform: scale(0);
         opacity: 0;
     }
 </style>

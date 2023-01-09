@@ -1,23 +1,22 @@
-import { Router, text, json } from "express";
-import type { AppLocals, SignUpData, ClientVersion, AddedFile } from "../../data-types";
-import { createResponse, setCookies, ValuesValidator, ValueValidator, getFileSize } from "../functions.js";
-import { getDateTime } from "../../functions.js";
-import { readdir, mkdir, writeFile } from "fs/promises";
+import { Router, json } from "express";
+import type { AppLocals, SignUpData, ClientVersion, AddedFile, AddProfileImageRequestBody } from "../../data-types";
+import { createResponse, setCookies, ValuesValidator, ValueValidator, getFileSize, handlersWrapper } from "../functions.js";
+import { getDateTime, getRandomId, normalizeBase64 } from "../../functions.js";
+import { readFile, readdir, writeFile, stat, rm } from "fs/promises";
 import { join, parse } from "path";
 
 const managerRouter = Router();
-
-const textParser = text({
-    limit: "10mb"
-});
 
 const jsonParser = json({
     limit: "10mb"
 });
 
-managerRouter.get(encodeURI("/:userId/check user"), async (req, res) => {
-    try {
+const documents = join(process.cwd(), "server/documents");
+
+managerRouter.get(encodeURI("/:userId/check user"), ...handlersWrapper(
+    async (req, res) => {
         const { userId: id, username, email, tel, password } = req.query as unknown as ClientVersion<SignUpData>;
+
         let { userId } = req.params as Pick<ClientVersion<SignUpData>, "userId">;
         
         if ( userId != id) throw new Error("Wrong userId");
@@ -54,7 +53,7 @@ managerRouter.get(encodeURI("/:userId/check user"), async (req, res) => {
 
         const [ users ] = await connection.execute<any[]>(
             `
-                SELECT * FROM users
+                SELECT isProfileImg FROM users
                 WHERE id = ? and username = ? and email = ? and tel = ? and password = ?
             `,
             [ id, username, email, tel, password ]
@@ -62,7 +61,26 @@ managerRouter.get(encodeURI("/:userId/check user"), async (req, res) => {
 
         if ( users.length === 0 ) throw new Error("Failed MySQL request");
 
-        const { profileImg } = users[0] as SignUpData;
+        const { isProfileImg } = users[0] as Pick<SignUpData, "isProfileImg">;
+
+        let profileImg = "";
+
+        if ( isProfileImg ) {
+            const pathToUsersDocuments = join(documents, `user-${id}`);
+
+            const files = await readdir(pathToUsersDocuments);
+
+            for ( let i = 0; i < files.length; i++ ) {
+                const { name } = parse(files[i]);
+
+                if ( name.toLowerCase() === "profile") {
+                    const pathToProfileImg = join(pathToUsersDocuments, files[i]);
+                    profileImg = await readFile(pathToProfileImg, { encoding: "base64" });
+                    profileImg = normalizeBase64(profileImg);
+                    break;
+                }
+            }
+        }
 
         setCookies(res, {
             userId,
@@ -80,20 +98,12 @@ managerRouter.get(encodeURI("/:userId/check user"), async (req, res) => {
                     profileImg
                 })
             );
-    } catch (error) {
-        console.log(error);
-        
-        res
-            .status(404)
-            .json(
-                createResponse("fail", "Failed request")
-            );
     }
-});
+));
 
-managerRouter.patch(encodeURI("/:userId/add profile image"), textParser, async (req, res) => {
-    try {
-        const profileImg = req.body as string;
+managerRouter.patch(encodeURI("/:userId/add profile image"), jsonParser, ...handlersWrapper(
+    async (req, res) => {
+        const { profileImg, name } = req.body as AddProfileImageRequestBody;
         const { userId } = req.params;
 
         const validator = new ValueValidator(profileImg);
@@ -104,49 +114,84 @@ managerRouter.patch(encodeURI("/:userId/add profile image"), textParser, async (
 
         if ( !result ) throw new Error("Img`s string failed validation");
 
+        const { ext } = parse(name);
+        const pathToProfileImg = join(documents, `user-${userId}`, `profile${ext}`);
+
+        const bufferProfileImg = Buffer.from(profileImg, "base64");
+
+        await writeFile(pathToProfileImg, bufferProfileImg);
+
+        const loadedProfileImg = await readFile(pathToProfileImg, { encoding: "base64" });
+
         const { connection } = req.app.locals as AppLocals;
 
         await connection.execute(
             `
                 UPDATE users
-                SET profileImg = ?
+                SET isProfileImg = ?
                 WHERE id = ?
             `,
-            [ profileImg, userId ]
+            [ true, userId ]
         );
 
         res
             .status(200)
             .json(
-                createResponse("success", profileImg)
-            );
-    } catch (error) {
-        console.log(error);
-        
-        res
-            .status(404)
-            .json(
-                createResponse("fail", "Failed request")
+                createResponse("success", loadedProfileImg)
             );
     }
-});
+));
 
-managerRouter.post(encodeURI("/:userId/add file"), jsonParser, async (req, res) => {
-    try {
-        let { content, name, type, size } = req.body as Pick<AddedFile, "content" | "name" | "type" | "size">;
+managerRouter.post(encodeURI("/:userId/add file"), jsonParser, ...handlersWrapper(
+    async (req, res) => {
+        let { content, name, type } = req.body as Pick<AddedFile, "name" | "type" | "size"> & {
+            content: string;
+            type: string
+        };
         const { userId } = req.params as Pick<AddedFile, "userId">;
-        
-        const dateTime = getDateTime();
-        size = getFileSize(+size, "byte", "kbyte", 3);
+
+        const pathToUsersDocuments = join(documents, `user-${userId}`);
+
+        if ( /^profile/i.test(name) ) {
+            await (async function changeName() {
+                const randomId = getRandomId(6);
+
+                let files = await readdir(pathToUsersDocuments);
+                files = files.filter(file => new RegExp(`${randomId}`).test(file));
+
+                if ( files.length === 0 ) {
+                    const { name: filename, ext } = parse(name);
+                    name = `${filename}-${randomId}${ext}`
+                } else {
+                    await changeName();
+                }
+            })();
+        }
+
+        const pathToNewFile = join(pathToUsersDocuments, name);
+
+        let encoding: BufferEncoding;
+
+        if ( /^image/.test(type) ) encoding = "base64"
+        else if ( /^text/.test(type) ) encoding = "utf-8";
+        else throw new Error("Unsupported file`s type");
+
+        await writeFile(pathToNewFile, content, { encoding });
+
+        const { size, birthtimeMs } = await stat(pathToNewFile);
+
+        const transformedSize = getFileSize(+size, "byte", "kbyte", 3);
+
+        const dateTime = getDateTime(birthtimeMs);
 
         const { connection } = req.app.locals as AppLocals;
 
         await connection.execute(
             `
-                INSERT INTO documents (content, name, type, size, userId, added)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO documents (name, type, size, userId, added)
+                VALUES (?, ?, ?, ?, ?)
             `,
-            [ content, name, type, size, userId, dateTime ]
+            [ name, type, transformedSize, userId, dateTime ]
         );
 
         const [ addedFiles ] = await connection.execute<any[]>(
@@ -168,19 +213,11 @@ managerRouter.post(encodeURI("/:userId/add file"), jsonParser, async (req, res) 
             .json(
                 createResponse("success", lastAddedFile)
             );
-    } catch (error) {
-        console.log(error);
-        
-        res
-            .status(404)
-            .json(
-                createResponse("fail", "Failed request")
-            );
     }
-});
+));
 
-managerRouter.get(encodeURI("/:userId/get all files"), async (req, res) => {
-    try {
+managerRouter.get(encodeURI("/:userId/get all files"), ...handlersWrapper(
+    async (req, res) => {
         const { userId } = req.params as Pick<AddedFile, "userId">;
         const { connection } = req.app.locals as AppLocals;
 
@@ -197,80 +234,76 @@ managerRouter.get(encodeURI("/:userId/get all files"), async (req, res) => {
             .json(
                 createResponse("success", files)
             );
-    } catch (error) {
-        console.log(error);
-        
-        res
-            .status(404)
-            .json(
-                createResponse("fail", "Failed request")
-            );
     }
-});
+));
 
-managerRouter.get(encodeURI("/:userId/download file"), async (req, res) => {
-    try {
+managerRouter.get(encodeURI("/:userId/download file"), ...handlersWrapper(
+    async (req, res) => {
         const { id } = req.query as Pick<AddedFile, "id">;
         const { userId } = req.params as Pick<AddedFile, "userId">;
         const { connection } = req.app.locals as AppLocals;
 
         const [ files ] = await connection.execute<any[]>(
             `
-                SELECT content, type, name, userId FROM documents
+                SELECT type, name FROM documents
                 WHERE id = ? and userId = ?
             `,
             [ id, userId ]
         );
 
-        const { content, type, name, userId: userIdDoc } = files[0] as Pick<AddedFile, "content" | "type" | "name" | "userId">;
+        const { type, name } = files[0] as Pick<AddedFile, "type" | "name">;
 
-        if ( !content || !type || !name ) throw new Error("This document does not exist");
+        if ( !type || !name ) throw new Error("This document does not exist");
 
-        const pathToFilesDir = join(process.cwd(), "server/documents", userIdDoc);
-        const pathToFile = join(pathToFilesDir, name);
-        
-        await mkdir(pathToFilesDir, { recursive: true });
+        const pathToFile = join(documents, `user-${userId}`, name);
 
-        const dirFiles = await readdir(pathToFilesDir);
+        let encoding: BufferEncoding;
 
-        dirFiles.forEach(async file => {
-            const { base } = parse(file);
+        if ( /^image/.test(type) ) encoding = "base64"
+        else if ( /^text/.test(type) ) encoding = "utf-8";
+        else throw new Error("Unsupported file`s type");
 
-            if ( base.toLowerCase() === name.toLowerCase() ) res.sendFile(pathToFile);
-        });
+        const content = await readFile(pathToFile, { encoding });
 
-        if ( /^text/.test(type) ) {
-            await writeFile(pathToFile, content, { encoding: "utf-8" });
-        } else if ( /^image/.test(type) ) {
-            await writeFile(pathToFile, Buffer.from(content));
-        } else {
-            throw new Error("Unsupported file`s type");
-        }
-
-        res.sendFile(pathToFile);
-    } catch (error) {
-        console.log(error);
-        
         res
-            .status(404)
+            .status(200)
             .json(
-                createResponse("fail", "Failed request")
+                createResponse("success", {
+                    name,
+                    type,
+                    content
+                })
             );
     }
-});
+));
 
-managerRouter.delete(encodeURI("/:userId/delete file"), async (req, res) => {
-    try {
+managerRouter.delete(encodeURI("/:userId/delete file"), ...handlersWrapper(
+    async (req, res) => {
         const { id } = req.query as Pick<AddedFile, "id">;
+        const { userId } = req.params as Pick<AddedFile, "userId">;
 
         const { connection } = req.app.locals as AppLocals;
+
+        const [ files ] = await connection.execute<any[]>(
+            `
+                SELECT name FROM documents
+                WHERE userId = ? and id = ?
+            `,
+            [ userId, id ]
+        );
+
+        const { name } = files[0] as Pick<AddedFile, "name">;
+
+        const pathToDeleteFile = join(documents, `user-${userId}`, name);
+
+        await rm(pathToDeleteFile);
 
         await connection.execute(
             `
                 DELETE FROM documents
-                WHERE id = ?
+                WHERE userId = ? and id = ?
             `,
-            [ id ]
+            [ userId, id ]
         );
 
         res
@@ -278,9 +311,7 @@ managerRouter.delete(encodeURI("/:userId/delete file"), async (req, res) => {
             .json(
                 createResponse("success", "Document was deleted")
             );
-    } catch (error) {
-        
     }
-});
+));
 
 export default managerRouter;

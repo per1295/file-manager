@@ -1,8 +1,14 @@
 <template>
     <div
+        ref="notification"
         class="notification"
         :class="theme === 'light' ? [ 'light-theme', 'cursor-pointer-light' ] : [ 'dark-theme', 'cursor-pointer-dark' ]"
         @click="toggleOpen"
+        @pointerdown="startMoving"
+        @pointermove="moving"
+        @pointerup="endMoving"
+        @pointerleave="endMoving"
+        @pointercancel="endMoving"
         data-cursor="pointer"
     >
         <div class="notification-conteiner" data-cursor="pointer">
@@ -11,13 +17,13 @@
                 :class="theme === 'light' ? [ 'light-theme' ] : [ 'dark-theme' ]"
             >
                 <span class="notification-conteiner-title-icon" :data-type="status" data-cursor="pointer"></span>
-                {{ title }}
+                <span class="notification-conteiner-title-content">
+                    {{ title.replace(/\s/g, "&nbsp;") }}
+                </span>
             </span>
             <svg
                 @click.stop="remove"
                 class="notification-conteiner-close"
-                width="10"
-                height="10"
                 viewBox="0 0 10 10"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-    import { PropType, ref } from 'vue';
+    import { PropType, ref, watch } from 'vue';
     import useNotifications from '../../../pinia/useNotifications';
     import useTheme from '../../../pinia/useTheme';
     import { storeToRefs } from 'pinia';
@@ -59,6 +65,81 @@
         }
     });
 
+    const moveX = ref(0);
+    const lastMovingMoveX = ref(0);
+    const isMoving = ref(false);
+    const notification = ref<HTMLDivElement>();
+
+    const removeNotificationElem = () => {
+        const notificationElem = notification.value;
+        if ( !notificationElem ) return;
+
+        notificationElem.remove();
+        removeNotification(props.id);
+    }
+
+    const resetNotificationElem = () => {
+        const notificationElem = notification.value;
+        if ( !notificationElem ) return;
+
+        notificationElem.style.removeProperty("transition");
+        moveX.value = 0;
+    }
+
+    watch([moveX, isMoving], (nowValues, oldValues) => {
+        const [ nowMoveX, nowIsMoving ] = nowValues;
+        const [ oldMoveX ] = oldValues;
+
+        const notificationElem = notification.value;
+        if ( !notificationElem ) return;
+
+        if ( nowIsMoving ) {
+            const translateXMatch = notificationElem.style.transform.match(/(?<=translatex\()\-\d+(?=px\))/i);
+
+            if ( translateXMatch ) {
+                const movedX = +translateXMatch.toString();
+                const move = movedX - oldMoveX + nowMoveX;
+
+                notificationElem.style.transform = `translateX(${move >= 0 ? 0 : move}px)`;
+                notificationElem.style.opacity = `${100 + move <= 0 ? 0 : (100 + move) / 100 }`;
+
+                lastMovingMoveX.value = oldMoveX;
+            } else {
+                const move = nowMoveX - oldMoveX;
+
+                notificationElem.style.transform = `translateX(${move >= 0 ? 0 : move}px)`;
+            }
+        } else {
+            notificationElem.style.transition = "all .35s ease";
+
+            if ( nowMoveX >= lastMovingMoveX.value ) {
+                notificationElem.style.transform = "translateX(0)";
+                notificationElem.style.opacity = "1";
+                notificationElem.addEventListener("transitionend", resetNotificationElem, { once: true });
+            } else {
+                notificationElem.style.transform = "translateX(-100px)";
+                notificationElem.style.opacity = "0";
+                notificationElem.addEventListener("transitionend", removeNotificationElem, { once: true });
+            }
+        }
+    });
+
+    const startMoving = (event: PointerEvent) => {
+        isMoving.value = true;
+        const movingValue = +event.clientX.toFixed();
+        moveX.value = movingValue;
+    }
+
+    const moving = (event: PointerEvent) => {
+        if ( !isMoving.value ) return;
+        const movingValue = +event.clientX.toFixed();
+        if ( moveX.value !== movingValue ) moveX.value = movingValue;
+    }
+
+    const endMoving = () => {
+        isMoving.value = false;
+    }
+
     const themeStore = useTheme();
     const { theme } = storeToRefs(themeStore);
 
@@ -74,7 +155,8 @@
 
 <style lang="scss">
     .notification {
-        width: 260px;
+        max-width: 260px;
+        width: 40vw;
         background: #FFFFFF;
         box-shadow: 0px 2px 8px rgba(72, 72, 72, 0.25);
         border-radius: 4px;
@@ -89,22 +171,22 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            max-width: 100%;
             width: 100%;
-            column-gap: 56px;
+
+            @media screen and (max-width: 320px) {
+                column-gap: unset;
+            }
 
             .notification-conteiner-title {
                 display: flex;
                 align-items: center;
                 column-gap: 6px;
-                font-family: 'Inter';
-                font-style: normal;
-                font-weight: 500;
-                font-size: 12px;
-                line-height: 15px;
+                max-width: calc(80% - 20px);
 
                 .notification-conteiner-title-icon {
-                    height: 12px;
-                    width: 12px;
+                    min-height: 20px;
+                    min-width: 20px;
                     background-position: center;
                     background-size: contain;
                     background-repeat: no-repeat;
@@ -129,6 +211,24 @@
                         background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 5V7.5M13 7C13 7.78793 12.8448 8.56815 12.5433 9.2961C12.2417 10.0241 11.7998 10.6855 11.2426 11.2426C10.6855 11.7998 10.0241 12.2417 9.2961 12.5433C8.56815 12.8448 7.78793 13 7 13C6.21207 13 5.43185 12.8448 4.7039 12.5433C3.97595 12.2417 3.31451 11.7998 2.75736 11.2426C2.20021 10.6855 1.75825 10.0241 1.45672 9.2961C1.15519 8.56815 1 7.78793 1 7C1 5.4087 1.63214 3.88258 2.75736 2.75736C3.88258 1.63214 5.4087 1 7 1C8.5913 1 10.1174 1.63214 11.2426 2.75736C12.3679 3.88258 13 5.4087 13 7ZM7 9.5H7.00533V9.50533H7V9.5Z' stroke='%23FF0000' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
                     }
                 }
+
+                .notification-conteiner-title-content {
+                    font-family: 'Inter';
+                    font-style: normal;
+                    font-weight: 500;
+                    font-size: 12px;
+                    line-height: 15px;
+                    overflow-x: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 100%;
+                }
+            }
+
+            .notification-conteiner-close {
+                min-height: 20px;
+                min-width: 20px;
+                max-height: 20px;
+                max-width: 20px;
             }
         }
     }

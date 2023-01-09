@@ -24,6 +24,11 @@
     .form-bottom {
         margin-top: 35px;
 
+        @media screen and (max-width: 425px) {
+            text-align: center;
+            max-width: 80%;
+        }
+
         .form-bottom-main {
             font-family: 'Poppins';
             font-style: normal;
