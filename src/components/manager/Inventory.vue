@@ -13,6 +13,7 @@
     import useUserData from '../../../pinia/useUserData';
     import type { CustomResponse, AddedFile } from '../../../data-types';
     import { truthyObjectItems } from "../../functions";
+    import { storeToRefs } from 'pinia';
 
     const inventory = ref<HTMLDivElement>();
 
@@ -23,10 +24,13 @@
     const { addNotification } = notificationsStore;
 
     const userDataStore = useUserData();
+    const { userData } = storeToRefs(userDataStore);
 
-    watch(userDataStore.userData, async nowUserData => {
+    watch(userData, async (nowUserData, oldUserData) => {
         if (
             truthyObjectItems(nowUserData, "userId", "username", "email", "tel", "password")
+            &&
+            !oldUserData
         ) {
             try {
                 const response = await axios.get<CustomResponse<AddedFile[]>>("/get all files", {
@@ -99,6 +103,8 @@
                 });
             }
         }
+    }, {
+        deep: true
     });
 </script>
 

@@ -75,7 +75,7 @@
     const router = useRouter();
 
     const notificationsStore = useNotifications();
-    const { addNotification } = notificationsStore;
+    const { addNotification, addNotifications } = notificationsStore;
 
     const signUpData = reactive<Omit<SignUpData, "isProfileImg">>({
         username: "",
@@ -100,27 +100,32 @@
             const { message, status } = data;
 
             if ( status === "success" ) {
-                addNotification({
-                    status,
-                    title: message
-                });
+                addNotifications(
+                    {
+                        status,
+                        title: message
+                    },
+                    {
+                        status: "inf",
+                        title: "Wait a bit..."
+                    }
+                );
 
                 const userId = cookie.get("userId");
 
                 if ( userId && typeof userId === "string" ) {
-                    console.log(userId);
                     router.push({
                         name: "file_manager",
                         params: {
                             userId
                         }
                     });
+                } else {
+                    addNotification({
+                        status: "fail",
+                        title: message
+                    });
                 }
-            } else {
-                addNotification({
-                    status: "fail",
-                    title: message
-                });
             }
         } catch (error) {
             const e = error as Error;

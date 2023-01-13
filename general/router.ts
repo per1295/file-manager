@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, createMemoryHistory } from "vue-router"
 import axios from "axios";
 import cookie from "cookiejs";
 import type { SignUpData, ClientVersion } from "../data-types";
+import useNotifications from "../pinia/useNotifications";
 
 const Login = () => import("../src/components/login/index.vue");
 const SignUp = () => import("../src/components/signUp/index.vue");
@@ -70,6 +71,11 @@ router.afterEach((to, from) => {
     }
 
     axios.defaults.baseURL = `/api${to.path}`;
+
+    const notificationsStore = useNotifications();
+    const { clearWaitingNotifications } = notificationsStore;
+
+    clearWaitingNotifications();
 });
 
 export default router;

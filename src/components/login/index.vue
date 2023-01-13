@@ -88,7 +88,7 @@
     const router = useRouter();
 
     const notificationStore = useNotifications();
-    const { addNotification } = notificationStore;
+    const { addNotification, addNotifications } = notificationStore;
 
     const themeStore = useTheme();
     const { theme } = storeToRefs(themeStore);
@@ -115,26 +115,32 @@
             const { status, message } = data;
 
             if ( status === "success" ) {
-                addNotification({
-                    status,
-                    title: message
-                });
-            }
-
-            const userId = cookie.get("userId");
-
-            if ( userId && typeof userId === "string" ) {
-                router.push({
-                    name: "file_manager",
-                    params: {
-                        userId
+                addNotifications(
+                    {
+                        status,
+                        title: message
+                    },
+                    {
+                        status: "inf",
+                        title: "Wait a bit..."
                     }
-                });
-            } else {
-                addNotification({
-                    status: "fail",
-                    title: message
-                });
+                );
+
+                const userId = cookie.get("userId");
+
+                if ( userId && typeof userId === "string" ) {
+                    router.push({
+                        name: "file_manager",
+                        params: {
+                            userId
+                        }
+                    });
+                } else {
+                    addNotification({
+                        status: "fail",
+                        title: message
+                    });
+                }
             }
         } catch (error) {
             const e = error as Error;

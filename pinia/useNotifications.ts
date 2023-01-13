@@ -23,13 +23,26 @@ export default defineStore("notifications", () => {
         notifications.value = [ newNotification, ...notifications.value ];
     };
 
+    const addNotifications = (...notifications: Omit<INotification, "id">[]) => {
+        for ( let i = 0; i < notifications.length; i++ ) {
+            addNotification(notifications[i]);
+        }
+    }
+
     const removeNotification = (id: number) => {
         notifications.value = notifications.value.filter(item => item.id !== id);
+    }
+
+    const clearWaitingNotifications = () => {
+        const filtredNotifications = notifications.value.filter(notification => !/wait\sa\sbit/i.test(notification.title));
+        notifications.value = filtredNotifications;
     }
 
     return {
         notifications,
         addNotification,
-        removeNotification
+        addNotifications,
+        removeNotification,
+        clearWaitingNotifications
     }
 });
