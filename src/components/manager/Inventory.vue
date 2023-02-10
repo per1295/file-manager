@@ -12,8 +12,8 @@
     import useNotifications from '../../../pinia/useNotifications';
     import useUserData from '../../../pinia/useUserData';
     import type { CustomResponse, AddedFile } from '../../../data-types';
-    import { truthyObjectItems } from "../../functions";
     import { storeToRefs } from 'pinia';
+    import { checkFields } from '../../../functions';
 
     const inventory = ref<HTMLDivElement>();
 
@@ -28,7 +28,7 @@
 
     watch(userData, async (nowUserData, oldUserData) => {
         if (
-            truthyObjectItems(nowUserData, "userId", "username", "email", "tel", "password")
+            checkFields(nowUserData, "id", "username", "email", "tel", "password")
             &&
             !oldUserData
         ) {

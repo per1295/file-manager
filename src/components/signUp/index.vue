@@ -67,7 +67,7 @@
 
     import { reactive } from 'vue';
     import axios from 'axios';
-    import type { SignUpData, CustomResponse } from "../../../data-types";
+    import type { CustomResponse } from "../../../data-types";
     import useNotifications from '../../../pinia/useNotifications';
     import { useRouter } from 'vue-router';
     import cookie from "cookiejs";
@@ -77,7 +77,8 @@
     const notificationsStore = useNotifications();
     const { addNotification, addNotifications } = notificationsStore;
 
-    const signUpData = reactive<Omit<SignUpData, "isProfileImg">>({
+    const signUpData = reactive({
+        id: null,
         username: "",
         email: "",
         tel: "",
@@ -111,13 +112,13 @@
                     }
                 );
 
-                const userId = cookie.get("userId");
+                const id = cookie.get("id");
 
-                if ( userId && typeof userId === "string" ) {
+                if ( id && typeof id === "string" ) {
                     router.push({
                         name: "file_manager",
                         params: {
-                            userId
+                            id
                         }
                     });
                 } else {

@@ -14,8 +14,9 @@
                 alt="profile-img"
                 class="profile-img-real"
                 data-cursor="pointer"
+                :class="theme === 'light' ? [ 'cursor-pointer-light' ] : [ 'cursor-pointer-dark' ]"
             />
-            <div v-else class="wrapper-img" data-cursor="pointer">
+            <div v-else class="wrapper-img" data-cursor="pointer" data-theme="ignore">
                 <svg class="profile-conteiner-img-picture" width="200" height="240" viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                 <rect x="-253" y="-486" width="490" height="789" fill="url(#pattern0)"/>
                 <defs>

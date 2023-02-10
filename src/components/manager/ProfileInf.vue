@@ -3,7 +3,7 @@
         <blur-row-placeholder-vue
             width="190px"
             height="26px"
-            :watch-id="userData.userId"
+            :watch-id="userData.id"
             :watch-prop="userData.username"
         />
         <div class="profile-inf-subinf" data-theme="ignore">
@@ -12,7 +12,7 @@
                 :key="index"
                 :width="placeholder.width"
                 :height="placeholder.height"
-                :watch-id="userData.userId"
+                :watch-id="userData.id"
                 :watch-prop="
                     index === 0
                     ?
@@ -33,7 +33,7 @@
         <blur-row-placeholder-vue
             width="80px"
             height="10px"
-            :watch-id="userData.userId"
+            :watch-id="userData.id"
         />
     </div>
 </template>

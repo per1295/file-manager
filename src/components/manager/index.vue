@@ -25,9 +25,9 @@
     import useNotifications from '../../../pinia/useNotifications';
     import useUserData from "../../../pinia/useUserData";
     import cookie from "cookiejs";
-    import type { SignUpData, ClientVersion, CustomResponse, CheckUserResponse } from '../../../data-types';
+    import type { SignUpData, CustomResponse, CheckUserResponse } from '../../../data-types';
     import { storeToRefs } from 'pinia';
-    import { truthyObjectItems } from '../../functions';
+    import { checkFields } from '../../../functions';
 
     const notificationsStore = useNotifications();
     const { addNotification } = notificationsStore;
@@ -39,12 +39,13 @@
         try {
             const { userData } = storeToRefs(userDataStore);
 
-            if ( truthyObjectItems(userData.value, "userId", "username", "email", "tel", "password") ) return;
+            if ( checkFields(userData.value, "id", "username", "email", "tel", "password") ) return;
 
-            const cookies = cookie.all() as unknown as Omit<ClientVersion<SignUpData>, "profileImg">;
+            const cookies = cookie.all() as unknown as Omit<SignUpData, "profileImg">;
 
-            if ( !Object.entries(cookies).length ) throw new Error("You need first to login");
-            if ( Object.entries(cookies).length < 5 ) throw new Error("Wrong cookies, try login again");
+            if ( !checkFields(cookies, "id", "username", "email", "tel", "password") ) {
+                throw new Error("You need first to login");
+            }
 
             cookies.email = decodeURIComponent(cookies.email);
 
@@ -57,7 +58,7 @@
             const { status, message } = response.data;
 
             if ( status === "success" ) {
-                const newCookies = cookie.all() as unknown as ClientVersion<SignUpData>;
+                const newCookies = cookie.all() as unknown as SignUpData;
                 const profileImg = message.profileImg;
 
                 if ( !profileImg ) {

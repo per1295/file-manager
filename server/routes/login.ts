@@ -1,6 +1,6 @@
 import { Router, json } from "express";
 import { ValuesValidator, createResponse, setCookies, handlersWrapper } from "../functions.js";
-import type { LoginData, AppLocals, SignUpData, ServerVersion } from "../../data-types.js";
+import type { LoginData, AppLocals, SignUpData } from "../../data-types.js";
 import { join } from "path";
 import { mkdir } from "fs/promises";
 
@@ -46,14 +46,12 @@ loginRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
         );
 
         if ( existUsers.length === 0 ) {
-            return res
-                .status(404)
-                .json(
-                    createResponse("fail", "Email does not exists")
-                );
+            return res.json(
+                createResponse("fail", "Email does not exists")
+            );
         }
 
-        const existsUser = existUsers[0] as ServerVersion<SignUpData>;
+        const existsUser = existUsers[0] as SignUpData;
         const { id, username, tel } = existsUser;
 
         const pathToUsersDocuments = join(documents, `user-${id}`);
@@ -61,7 +59,7 @@ loginRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
         await mkdir(pathToUsersDocuments, { recursive: true });
 
         const cookieObj = {
-            userId: id,
+            id,
             username,
             email,
             tel,
@@ -71,11 +69,9 @@ loginRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
         if ( isRemembered ) setCookies(res, cookieObj);
         else setCookies(res, cookieObj, {});
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", "Your login was successful")
-            );
+        res.json(
+            createResponse("success", "Your login was successful")
+        );
     }
 ));
 

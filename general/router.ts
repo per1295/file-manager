@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory, createMemoryHistory } from "vue-router";
 import axios from "axios";
 import cookie from "cookiejs";
-import type { SignUpData, ClientVersion } from "../data-types";
+import type { SignUpData } from "../data-types";
 import useNotifications from "../pinia/useNotifications";
+import useUserData from "../pinia/useUserData";
 
 const Login = () => import("../src/components/login/index.vue");
 const SignUp = () => import("../src/components/signUp/index.vue");
@@ -34,7 +35,7 @@ const router = createRouter({
         },
         {
             name: "file_manager",
-            path: "/manager/:userId(\\d+)",
+            path: "/manager/:id(\\d+)",
             component: Manager
         },
         {
@@ -44,14 +45,29 @@ const router = createRouter({
     ]
 });
 
-router.beforeEach((to, from) => {
-    const cookies = cookie.all() as unknown as ClientVersion<SignUpData>;
+router.beforeEach(async (to, from) => {
+    const cookies = cookie.all() as unknown as SignUpData;
 
-    if ( Object.entries(cookies).length >= 5 && to.name !== "file_manager" && !from.name ) {
-        return {
-            name: "file_manager",
-            params: {
-                userId: cookies.userId
+    if ( to.name !== "file_manager" && !from.name ) {
+        axios.defaults.baseURL = "/";
+
+        const response = await axios.get<string | SignUpData>("/api/check user");
+        
+        if ( response.status < 400 ) {
+            const { data } = response;
+
+            if ( data instanceof Object ) {
+                const userDataStore = useUserData();
+                const { setUserData } = userDataStore;
+
+                setUserData(data, true);
+
+                return {
+                    name: "file_manager",
+                    params: {
+                        id: cookies.id
+                    }
+                }
             }
         }
     }

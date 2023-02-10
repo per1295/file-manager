@@ -1,6 +1,7 @@
 import type { Connection } from "mysql2/promise";
 
 export interface SignUpData {
+    id: number;
     username: string;
     email: string;
     tel: string;
@@ -31,10 +32,6 @@ export interface INotification {
     title: string;
     description?: string;
 }
-
-export type ServerVersion<Type> = { id: string } & Type;
-
-export type ClientVersion<Type> = { userId: string } & Type;
 
 export interface AddedFile {
     id: string;
@@ -67,4 +64,8 @@ export interface DownloadFileResponse {
 export interface AddProfileImageRequestBody {
     profileImg: string;
     name: string;
+}
+
+export interface Args {
+    NODE_ENV: "production" | "development";
 }

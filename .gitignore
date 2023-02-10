@@ -13,6 +13,8 @@ dist-ssr
 *.local
 package-lock.json
 server/documents
+dev-dist
+sw.js
 
 # Editor directories and files
 .vscode/*

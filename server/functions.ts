@@ -1,5 +1,5 @@
 import type { Connection } from "mysql2/promise";
-import type { CustomResponse, IValidatorType, FileSizeType } from "../data-types.js";
+import type { CustomResponse, IValidatorType, FileSizeType, Args } from "../data-types.js";
 import type { Request, Response, NextFunction, CookieOptions } from "express";
 
 export async function initDB(connection: Connection) {
@@ -46,7 +46,7 @@ export function setCookies(res: Response, objCookies: { [key: string]: any }, cu
     };
 
     for ( let [ key, value ] of Object.entries(objCookies) ) {
-        res.cookie(key, value, customOptions ?? cookieOptions);
+        res.cookie(key, decodeURIComponent(value), customOptions ?? cookieOptions);
     }
 }
 
@@ -285,9 +285,9 @@ export function handlersWrapper(...handlers: Handler[]): Handler[] {
     const updatedHandlers: Handler[] = [];
 
     for ( let i = 0; i < handlers.length; i++ ) {
-        const updatedHandler: Handler = async (req, res, _next) => {
+        const updatedHandler: Handler = async (req, res, next) => {
             try {
-                await handlers[i](req, res, _next);
+                await handlers[i](req, res, next);
             } catch (error) {
                 const e = error as Error;
 
@@ -305,4 +305,18 @@ export function handlersWrapper(...handlers: Handler[]): Handler[] {
     }
 
     return updatedHandlers;
+}
+
+export function getArgsLikeObject() {
+    const args = process.argv.slice(2);
+    const result = {} as Args;
+    
+    for ( const arg of args ) {
+        const [ key, value ] = arg.split("=");
+        Object.defineProperty(result, key, {
+            value
+        });
+    }
+
+    return result;
 }

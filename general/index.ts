@@ -1,5 +1,5 @@
 import App from "../src/App.vue";
-import { createSSRApp, defineAsyncComponent } from "vue";
+import { createSSRApp } from "vue";
 import router from "./router";
 import { createPinia } from "pinia";
 

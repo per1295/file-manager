@@ -1,5 +1,5 @@
 import { Router, json } from "express";
-import type { AppLocals, SignUpData, ClientVersion, AddedFile, AddProfileImageRequestBody } from "../../data-types";
+import type { AppLocals, SignUpData, AddedFile, AddProfileImageRequestBody } from "../../data-types";
 import { createResponse, setCookies, ValuesValidator, ValueValidator, getFileSize, handlersWrapper } from "../functions.js";
 import { getDateTime, getRandomId, normalizeBase64 } from "../../functions.js";
 import { readFile, readdir, writeFile, stat, rm } from "fs/promises";
@@ -13,13 +13,13 @@ const jsonParser = json({
 
 const documents = join(process.cwd(), "server/documents");
 
-managerRouter.get(encodeURI("/:userId/check user"), ...handlersWrapper(
+managerRouter.get(encodeURI("/:id/check user"), ...handlersWrapper(
     async (req, res) => {
-        const { userId: id, username, email, tel, password } = req.query as unknown as ClientVersion<SignUpData>;
+        const { id: userId, username, email, tel, password } = req.query as unknown as SignUpData;
 
-        let { userId } = req.params as Pick<ClientVersion<SignUpData>, "userId">;
-        
-        if ( userId != id) throw new Error("Wrong userId");
+        let { id: paramId } = req.params;
+
+        if ( +paramId != userId ) throw new Error("Wrong id");
 
         const validator = new ValuesValidator({
             username,
@@ -56,7 +56,7 @@ managerRouter.get(encodeURI("/:userId/check user"), ...handlersWrapper(
                 SELECT isProfileImg FROM users
                 WHERE id = ? and username = ? and email = ? and tel = ? and password = ?
             `,
-            [ id, username, email, tel, password ]
+            [ userId, username, email, tel, password ]
         );
 
         if ( users.length === 0 ) throw new Error("Failed MySQL request");
@@ -66,7 +66,7 @@ managerRouter.get(encodeURI("/:userId/check user"), ...handlersWrapper(
         let profileImg = "";
 
         if ( isProfileImg ) {
-            const pathToUsersDocuments = join(documents, `user-${id}`);
+            const pathToUsersDocuments = join(documents, `user-${userId}`);
 
             const files = await readdir(pathToUsersDocuments);
 
@@ -83,28 +83,26 @@ managerRouter.get(encodeURI("/:userId/check user"), ...handlersWrapper(
         }
 
         setCookies(res, {
-            userId,
+            id: userId,
             username,
             email,
             tel,
             password
         });
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", {
-                    text: "User was confirmed",
-                    profileImg
-                })
-            );
+        res.json(
+            createResponse("success", {
+                text: "User was confirmed",
+                profileImg
+            })
+        );
     }
 ));
 
-managerRouter.patch(encodeURI("/:userId/add profile image"), jsonParser, ...handlersWrapper(
+managerRouter.patch(encodeURI("/:id/add profile image"), jsonParser, ...handlersWrapper(
     async (req, res) => {
         const { profileImg, name } = req.body as AddProfileImageRequestBody;
-        const { userId } = req.params;
+        const { id } = req.params;
 
         const validator = new ValueValidator(profileImg);
 
@@ -115,7 +113,7 @@ managerRouter.patch(encodeURI("/:userId/add profile image"), jsonParser, ...hand
         if ( !result ) throw new Error("Img`s string failed validation");
 
         const { ext } = parse(name);
-        const pathToProfileImg = join(documents, `user-${userId}`, `profile${ext}`);
+        const pathToProfileImg = join(documents, `user-${id}`, `profile${ext}`);
 
         const bufferProfileImg = Buffer.from(profileImg, "base64");
 
@@ -131,26 +129,24 @@ managerRouter.patch(encodeURI("/:userId/add profile image"), jsonParser, ...hand
                 SET isProfileImg = ?
                 WHERE id = ?
             `,
-            [ true, userId ]
+            [ true, id ]
         );
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", loadedProfileImg)
-            );
+        res.json(
+            createResponse("success", loadedProfileImg)
+        );
     }
 ));
 
-managerRouter.post(encodeURI("/:userId/add file"), jsonParser, ...handlersWrapper(
+managerRouter.post(encodeURI("/:id/add file"), jsonParser, ...handlersWrapper(
     async (req, res) => {
         let { content, name, type } = req.body as Pick<AddedFile, "name" | "type" | "size"> & {
             content: string;
             type: string
         };
-        const { userId } = req.params as Pick<AddedFile, "userId">;
+        const { id } = req.params;
 
-        const pathToUsersDocuments = join(documents, `user-${userId}`);
+        const pathToUsersDocuments = join(documents, `user-${id}`);
 
         if ( /^profile/i.test(name) ) {
             await (async function changeName() {
@@ -191,7 +187,7 @@ managerRouter.post(encodeURI("/:userId/add file"), jsonParser, ...handlersWrappe
                 INSERT INTO documents (name, type, size, userId, added)
                 VALUES (?, ?, ?, ?, ?)
             `,
-            [ name, type, transformedSize, userId, dateTime ]
+            [ name, type, transformedSize, id, dateTime ]
         );
 
         const [ addedFiles ] = await connection.execute<any[]>(
@@ -201,24 +197,22 @@ managerRouter.post(encodeURI("/:userId/add file"), jsonParser, ...handlersWrappe
                 ORDER BY id DESC
                 LIMIT 1
             `,
-            [ userId ]
+            [ id ]
         );
 
         const lastAddedFile = addedFiles[0] as AddedFile;
 
         if ( !lastAddedFile ) throw new Error("Now added file was not defined");
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", lastAddedFile)
-            );
+        res.json(
+            createResponse("success", lastAddedFile)
+        );
     }
 ));
 
-managerRouter.get(encodeURI("/:userId/get all files"), ...handlersWrapper(
+managerRouter.get(encodeURI("/:id/get all files"), ...handlersWrapper(
     async (req, res) => {
-        const { userId } = req.params as Pick<AddedFile, "userId">;
+        const { id } = req.params;
         const { connection } = req.app.locals as AppLocals;
 
         const [ files ] = await connection.execute(
@@ -226,21 +220,19 @@ managerRouter.get(encodeURI("/:userId/get all files"), ...handlersWrapper(
                 SELECT * FROM documents
                 WHERE userId = ?
             `,
-            [ userId ]
+            [ id ]
         );
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", files)
-            );
+        res.json(
+            createResponse("success", files)
+        );
     }
 ));
 
-managerRouter.get(encodeURI("/:userId/download file"), ...handlersWrapper(
+managerRouter.get(encodeURI("/:id/download file"), ...handlersWrapper(
     async (req, res) => {
         const { id } = req.query as Pick<AddedFile, "id">;
-        const { userId } = req.params as Pick<AddedFile, "userId">;
+        const { id: userId } = req.params;
         const { connection } = req.app.locals as AppLocals;
 
         const [ files ] = await connection.execute<any[]>(
@@ -265,15 +257,13 @@ managerRouter.get(encodeURI("/:userId/download file"), ...handlersWrapper(
 
         const content = await readFile(pathToFile, { encoding });
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", {
-                    name,
-                    type,
-                    content
-                })
-            );
+        res.json(
+            createResponse("success", {
+                name,
+                type,
+                content
+            })
+        );
     }
 ));
 
@@ -306,11 +296,9 @@ managerRouter.delete(encodeURI("/:userId/delete file"), ...handlersWrapper(
             [ userId, id ]
         );
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", "Document was deleted")
-            );
+        res.json(
+            createResponse("success", "Document was deleted")
+        );
     }
 ));
 

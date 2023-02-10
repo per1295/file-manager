@@ -1,5 +1,5 @@
 import { Router, json } from "express";
-import type { SignUpData, AppLocals, ServerVersion } from "../../data-types.js";
+import type { SignUpData, AppLocals } from "../../data-types.js";
 import { createResponse, setCookies, ValuesValidator, handlersWrapper } from "../functions.js";
 import { getDateTime } from "../../functions.js";
 import { mkdir } from "fs/promises";
@@ -9,12 +9,12 @@ const signUpRouter = Router();
 
 const jsonParser = json();
 
-const documents = join(process.cwd(), "server/documents");
+const documents = join(process.cwd(), "server", "documents");
 
 signUpRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
     async (req, res) => {
         let { username, email, tel, password } = req.body as SignUpData;
-
+        
         const validator = new ValuesValidator({
             username,
             email,
@@ -74,7 +74,7 @@ signUpRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
             [ username, email, tel, password ]
         );
 
-        const newUser = updateExistUsers[0] as ServerVersion<SignUpData>;
+        const newUser = updateExistUsers[0] as SignUpData;
 
         const { id } = newUser;
 
@@ -83,18 +83,16 @@ signUpRouter.post(encodeURI("/user data"), jsonParser, ...handlersWrapper(
         await mkdir(pathToUsersDocuments, { recursive: true });
 
         setCookies(res, {
-            userId: id,
+            id,
             username,
             email,
             tel,
             password
         });
 
-        res
-            .status(200)
-            .json(
-                createResponse("success", "Your registration was successful")
-            );
+        res.json(
+            createResponse("success", "Your registration was successful")
+        );
     }
 ))
 

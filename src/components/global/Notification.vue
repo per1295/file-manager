@@ -17,7 +17,7 @@
                 :class="theme === 'light' ? [ 'light-theme' ] : [ 'dark-theme' ]"
             >
                 <span class="notification-conteiner-title-icon" :data-type="status" data-cursor="pointer"></span>
-                <span class="notification-conteiner-title-content">
+                <span class="notification-conteiner-title-content" ref="titleRef">
                     {{ title.replace(/\s/g, "&nbsp;") }}
                 </span>
             </span>
@@ -145,6 +145,19 @@
     const { theme } = storeToRefs(themeStore);
 
     const isNotificationFullOpen = ref(false);
+    const titleRef = ref<HTMLSpanElement>();
+
+    watch(isNotificationFullOpen, nowIsNotificationOpen => {
+        if ( !titleRef.value ) return;
+
+        const title = titleRef.value;
+
+        if ( nowIsNotificationOpen ) {
+            title.style.wordBreak = "break-all";
+        } else {
+            title.style.wordBreak = "unset"
+        }
+    });
 
     const toggleOpen = () => isNotificationFullOpen.value = !isNotificationFullOpen.value;
 

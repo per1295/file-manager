@@ -3,7 +3,7 @@ import { reactive } from "vue";
 
 export default defineStore("user-data", () => {
     const userData = reactive<{ [ key: string ]: any }>({
-        userId: "",
+        id: "",
         username: "",
         email: "",
         tel: "",

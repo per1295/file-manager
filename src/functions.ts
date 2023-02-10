@@ -53,17 +53,3 @@ export function overElement(event: Event, ...classList: string[]) {
             break;
     }
 }
-
-export function truthyObjectItems<ObjectType extends Object>(obj: ObjectType, ...keys: (keyof ObjectType)[]): boolean {
-    let result = true;
-
-    if ( isProxy(obj) ) obj = toRaw(obj);
-
-    for ( let key in obj ) {
-        if ( keys.includes(key) && result ) {
-            result = !!obj[key];
-        }
-    }
-
-    return result;
-}

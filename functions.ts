@@ -91,3 +91,16 @@ export function normalizeBase64(str: string): string {
         return replacer.replace("<!--space-->", subtype);
     });
 }
+
+export function checkFields(obj: {[key: string]: any}, ...fields: string[]): boolean {
+    let result = true;
+
+    for ( let i = 0; i < fields.length; i++ ) {
+        if ( !(fields[i] in obj) || !obj[fields[i]] ) {
+            result = false;
+            break;
+        }
+    }
+
+    return result;
+}

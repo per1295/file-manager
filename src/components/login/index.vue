@@ -126,13 +126,13 @@
                     }
                 );
 
-                const userId = cookie.get("userId");
+                const id = cookie.get("id");
 
-                if ( userId && typeof userId === "string" ) {
+                if ( id && typeof id === "string" ) {
                     router.push({
                         name: "file_manager",
                         params: {
-                            userId
+                            id
                         }
                     });
                 } else {
